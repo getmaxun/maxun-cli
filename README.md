@@ -14,8 +14,11 @@ npm install -g @maxun/cli
 # Authenticate
 maxun login --api-key mx-your-key
 
-# Scrape a URL (no subcommand needed)
-maxun https://example.com
+# create an AI robot from a prompt
+maxun robots extract -p "Extract trending repositories from Github" -n "Github Trends"
+
+# Run it
+maxun run <robot-id>
 
 # Check your status and credits
 maxun status
@@ -32,54 +35,61 @@ maxun status
 | `maxun status` | Show plan, credits, and auth status |
 | `maxun credits` | Show remaining credits |
 
-### Scraping
+### Robots Management
 
 | Command | Description |
 |---------|-------------|
-| `maxun <url>` | Scrape a URL (shortcut — no subcommand needed) |
-| `maxun scrape <url>` | Scrape a URL |
-| `maxun crawl <url>` | Crawl a website across multiple pages |
+| `maxun robots list` | List all robots (Defaults to JSON, use `--table` for formatted view) |
+| `maxun robots extract -p <prompt>` | Create an AI robot from a natural language prompt |
+| `maxun robots scrape <url>` | Create a single-page extraction robot |
+| `maxun robots crawl <url>` | Create a multi-page crawler robot |
+| `maxun robots search <query>` | Create a search-based robot (modes: `discover`, `scrape`) |
+| `maxun robots delete <id>` | Remove a robot |
+| `maxun robots duplicate <id>` | Duplicate a robot with a new target URL |
 
-#### Scrape options
+### Robot Execution
 
+| Command | Description |
+|---------|-------------|
+| `maxun run <id>` | Trigger a robot run and get results (Defaults to JSON) |
+| `maxun run <id> --table` | Display results in a table (applicable for Discovery Search) |
+| `maxun run <id> -f html,markdown` | Override robot output formats for this specific run |
+
+### Runs & Data
+
+| Command | Description |
+|---------|-------------|
+| `maxun runs list <robot-id>` | List recent runs for a robot |
+| `maxun runs get <robot-id> <run-id>` | Fetch specific run data (Defaults to JSON) |
+| `maxun runs get <robot-id> <run-id> -f table` | View historical data in a table format |
+| `maxun runs get <robot-id> <run-id> -f csv -o data.csv` | Export results to CSV file |
+
+## Usage Examples
+
+### AI Extraction
 ```bash
-maxun https://example.com                        # markdown to stdout
-maxun https://example.com --format html          # html output
-maxun https://example.com --format json          # json output
-maxun https://example.com --screenshot           # include screenshot
-maxun https://example.com -o output.md           # save to file
-maxun https://example.com --wait-for 3000        # wait 3s before scraping
-maxun https://example.com --json                 # raw JSON (pipe-friendly)
-maxun https://example.com --pretty               # pretty print
+maxun robots extract \
+  -p "Extract all product names and prices" \
+  -u "https://example.com/shop" \
+  -n "Shop Extractor"
 ```
 
-#### Crawl options
-
+### Discovery Search
 ```bash
-maxun crawl https://example.com --depth 3 --limit 100
-maxun crawl https://example.com -o results.json
+maxun robots search "Latest web scraping news" \
+  --mode discover \
+  --limit 10 \
+  -n "News Discoverer"
+
+# Run and view as table
+maxun run <id> --table
 ```
 
-### Robots
-
-| Command | Description |
-|---------|-------------|
-| `maxun robots list` | List all robots |
-| `maxun robots run <id>` | Trigger a robot run |
-| `maxun robots run <id> --watch` | Run and stream live status |
-| `maxun robots run <id> --wait` | Block until done (CI/CD mode, exit 1 on fail) |
-| `maxun robots export <id>` | Export robot config as JSON |
-| `maxun robots import <file>` | Import a robot from JSON |
-
-### Runs
-
-| Command | Description |
-|---------|-------------|
-| `maxun runs list` | List recent runs |
-| `maxun runs list --robot <id>` | Filter by robot |
-| `maxun runs get <run-id>` | Get run output |
-| `maxun runs get <run-id> --format csv` | Get output as CSV |
-| `maxun runs get <run-id> -o data.json` | Save output to file |
+### Scraping & Crawling
+```bash
+maxun robots scrape https://example.com -f markdown,text -n "Example Scraper"
+maxun robots crawl https://docs.maxun.dev --limit 10 --include "/docs/*" -n "Docs Crawler"
+```
 
 ## Configuration
 
@@ -93,21 +103,14 @@ maxun login --api-key <key>
 export MAXUN_API_KEY=mx-your-key
 ```
 
-## CI/CD usage
-
-```bash
-# Run a robot, fail the pipeline if the run fails or returns no data
-maxun robots run my-robot-id --wait
-```
-
-## Piping & scripting
+## Piping & Scripting
 
 All data output goes to **stdout**, status messages to **stderr** — fully pipe-friendly:
 
 ```bash
-maxun https://example.com | grep "price"
-maxun runs get <id> --format csv | csvsort -c date
-maxun robots list --json | jq '.[].name'
+maxun run <id> | jq '.[].name'
+maxun runs list <robot-id> --table
+maxun robots list | grep "Extractor"
 ```
 
 ## License

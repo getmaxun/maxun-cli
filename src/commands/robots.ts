@@ -160,52 +160,48 @@ robotsCommand
     }
   });
 
-// maxun robots run <id>
+// maxun robots extract -p <prompt> [-u <url>] [-n <name>]
 robotsCommand
-  .command('run <id>')
-  .description('Trigger a robot run')
-  .action(async (id) => {
-    const spin = spinner(`Starting robot ${chalk.cyan(id)}...`);
+  .command('extract')
+  .description('Create an AI-powered extraction robot using a prompt')
+  .requiredOption('-p, --prompt <prompt>', 'Natural language prompt for extraction')
+  .option('-u, --url <url>', 'Target URL (optional, if omitted it will search for the URL)')
+  .option('-n, --name <name>', 'Robot name')
+  .option('--provider <provider>', 'LLM Provider: huggingface, openrouter', 'huggingface')
+  .option('--model <model>', 'LLM Model name')
+  .option('--api-key <key>', 'LLM API Key')
+  .action(async (options) => {
+    const spin = spinner('Generating AI robot from prompt...');
     const client = getClient();
 
     try {
-      const res = await client.post(`/api/sdk/robots/${id}/execute`, {}, { timeout: 1800000 });
-      spin.stop();
+      const res = await client.post('/api/sdk/extract/llm', {
+        url: options.url,
+        prompt: options.prompt,
+        llmProvider: options.provider,
+        llmModel: options.model,
+        llmApiKey: options.apiKey,
+        robotName: options.name
+      }, { timeout: 300000 }); // 5 minute timeout for AI generation
       
-      const response = res.data?.data || res.data;
-      const runId = response?.runId || res.data?.runId || res.data?.id;
-      const status = response?.status || 'unknown';
-      const extracted = response?.data || {};
+      spin.stop();
+      const robot = res.data?.data || res.data;
+      const robotId = robot.robotId || robot.recording_meta?.id || robot.id;
+      const name = robot.name || robot.recording_meta?.name || options.name || 'AI Robot';
 
-      success(`Run completed: ${chalk.bold(runId)} ${statusBadge(status)}`);
-
-      if (status === 'success' || status === 'completed') {
-        console.log(chalk.bold.cyan('\nExtracted Data:'));
-        
-        if (extracted.textData && Object.keys(extracted.textData).length > 0) {
-          console.log(chalk.yellow('\n[Text Data]'));
-          console.log(JSON.stringify(extracted.textData, null, 2));
-        }
-
-        if (extracted.listData && extracted.listData.length > 0) {
-          console.log(chalk.yellow(`\n[List Data] (${extracted.listData.length} records)`));
-          console.log(JSON.stringify(extracted.listData, null, 2));
-        }
-
-        if (extracted.crawlData && extracted.crawlData.length > 0) {
-          console.log(chalk.yellow(`\n[Crawl Data] (${extracted.crawlData.length} pages)`));
-          console.log(JSON.stringify(extracted.crawlData, null, 2));
-        }
-
-        if (extracted.markdown) {
-          console.log(chalk.yellow('\n[Markdown Content]'));
-          console.log(extracted.markdown);
-        }
-
-        console.log(chalk.gray(`\n  Results are stored. To export as CSV or another format, use: maxun runs get ${id} ${runId}`));
+      success(`AI Extract robot created: ${chalk.bold(name)} (${chalk.cyan(robotId)})`);
+      if (res.data?.existing) {
+        console.log(chalk.yellow('  (Using existing robot with same configuration)'));
       }
-    } catch {
-      spin.fail('Failed to run robot');
+      console.log(chalk.gray(`  Run it: maxun run ${robotId}`));
+    } catch (e: any) {
+      spin.fail('Failed to generate AI robot');
+      if (e.response?.data?.error) {
+        error(e.response.data.error);
+        if (e.response.data.details) {
+          console.log(chalk.gray('Details:'), e.response.data.details);
+        }
+      }
       process.exit(1);
     }
   });
