@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import fs from 'fs';
 import { getClient } from '../lib/api';
-import { spinner, printTable, shortId, formatDate, statusBadge, saveOutput, success, error } from '../lib/output';
+import { spinner, printTable, shortId, formatDate, statusBadge, saveOutput, success, error, printJSON } from '../lib/output';
 
 export const robotsCommand = new Command('robots')
   .description('Manage your Maxun robots');
@@ -20,26 +20,24 @@ robotsCommand
       const res = await client.get('/api/sdk/robots');
       spin.stop();
 
-      const robots: any[] = res.data?.robots || res.data || [];
+      const robots: any[] = res.data?.data || res.data?.robots || res.data || [];
 
       if (options.json) {
-        console.log(JSON.stringify(robots, null, 2));
+        printJSON(robots);
         return;
       }
 
       if (robots.length === 0) {
-        console.log(chalk.gray('No robots found. Create one at https://app.maxun.dev'));
+        console.log(chalk.gray('No robots found. Create one with: maxun robots create-scrape <url>'));
         return;
       }
 
       printTable(
-        ['ID', 'Name', 'Type', 'Last Run', 'Status'],
+        ['ID', 'Name', 'Type'],
         robots.map((r: any) => [
-          chalk.gray(shortId(r.id || r.recording_meta?.id || '')),
+          chalk.gray(r.recording_meta?.id || r.id || ''),
           chalk.white(r.recording_meta?.name || r.name || '—'),
-          chalk.cyan(r.recording_meta?.robotType || r.robotType || 'extract'),
-          formatDate(r.recording_meta?.lastRunAt || r.lastRunAt || ''),
-          statusBadge(r.status || ''),
+          chalk.cyan(r.recording_meta?.robotType || r.robotType || 'extract')
         ])
       );
       console.log(chalk.gray(`\n  ${robots.length} robot${robots.length !== 1 ? 's' : ''} total`));
@@ -49,119 +47,228 @@ robotsCommand
     }
   });
 
-// maxun robots run <id>
+// maxun robots scrape <url>
 robotsCommand
-  .command('run <id>')
-  .description('Trigger a robot run')
-  .option('--watch', 'Stream run status updates until complete')
-  .option('--wait', 'Block until complete, exit 1 on failure (CI/CD mode)')
-  .option('--json', 'Output raw JSON')
-  .action(async (id: string, options) => {
-    const spin = spinner(`Starting robot ${chalk.cyan(shortId(id))}...`);
+  .command('scrape <url>')
+  .description('Create a scrape robot for a URL')
+  .option('-n, --name <name>', 'Robot name')
+  .option('-f, --format <fmt>', 'Formats: markdown, html, text, screenshot-visible, screenshot-fullpage (comma-separated)', 'markdown')
+  .action(async (url, options) => {
+    const formats = options.format.split(',').map((f: string) => f.trim());
+    const name = options.name || `Scrape Robot - ${new URL(url).hostname}`;
+    const spin = spinner(`Creating scrape robot for ${chalk.cyan(url)}...`);
     const client = getClient();
 
     try {
-      const res = await client.post(`/api/sdk/robots/${id}/run`);
-      const runId = res.data?.runId || res.data?.id;
-      spin.succeed(`Run started: ${chalk.bold(shortId(runId))}`);
-
-      if (!options.watch && !options.wait) {
-        console.log(chalk.gray(`  Track it: maxun runs get ${runId}`));
-        return;
-      }
-
-      // Watch/wait: poll until done
-      const pollSpin = spinner('Waiting for run to complete...');
-      let done = false;
-      let lastStatus = '';
-
-      while (!done) {
-        await new Promise((r) => setTimeout(r, 3000));
-        try {
-          const statusRes = await client.get(`/api/sdk/runs/${runId}`);
-          const status = statusRes.data?.status || statusRes.data?.run?.status || 'unknown';
-
-          if (status !== lastStatus) {
-            pollSpin.text = `Status: ${statusBadge(status)}`;
-            lastStatus = status;
-          }
-
-          if (['success', 'completed', 'failed', 'error'].includes(status.toLowerCase())) {
-            done = true;
-            if (['failed', 'error'].includes(status.toLowerCase())) {
-              pollSpin.fail(`Run failed`);
-              process.exit(1);
-            } else {
-              pollSpin.succeed(`Run completed successfully`);
-              if (options.json) {
-                console.log(JSON.stringify(statusRes.data, null, 2));
-              } else {
-                console.log(chalk.gray(`  Get results: maxun runs get ${runId}`));
-              }
-            }
-          }
-        } catch {
-          // ignore transient poll errors
-        }
-      }
+      const res = await client.post('/api/sdk/robots', {
+        meta: {
+          name,
+          robotType: 'scrape',
+          url,
+          formats
+        },
+        workflow: []
+      });
+      spin.stop();
+      const robot = res.data?.data || res.data;
+      const robotId = robot.recording_meta?.id || robot.id;
+      success(`Scrape robot created: ${chalk.bold(name)} (${chalk.cyan(robotId)})`);
+      console.log(chalk.gray(`  Run it: maxun run ${robotId}`));
     } catch {
-      spin.fail('Failed to start robot run');
+      spin.fail('Failed to create scrape robot');
       process.exit(1);
     }
   });
 
-// maxun robots export <id>
+// maxun robots crawl <url>
 robotsCommand
-  .command('export <id>')
-  .description('Export robot configuration as JSON')
-  .option('-o, --output <file>', 'Save to file instead of stdout')
-  .action(async (id: string, options) => {
-    const spin = spinner(`Exporting robot ${chalk.cyan(shortId(id))}...`);
+  .command('crawl <url>')
+  .description('Create a crawl robot for a URL')
+  .option('-n, --name <name>', 'Robot name')
+  .option('-f, --format <fmt>', 'Formats: markdown, html, text, screenshot-visible, screenshot-fullpage (comma-separated)', 'markdown')
+  .option('--limit <n>', 'Max pages to crawl', parseInt, 10)
+  .option('--include <paths>', 'Include path patterns (comma-separated)')
+  .option('--exclude <paths>', 'Exclude path patterns (comma-separated)')
+  .action(async (url, options) => {
+    const name = options.name || `Crawl Robot - ${new URL(url).hostname}`;
+    const formats = options.format.split(',').map((f: string) => f.trim());
+    const spin = spinner(`Creating crawl robot for ${chalk.cyan(url)}...`);
+    const client = getClient();
+
+    try {
+      const res = await client.post('/api/sdk/crawl', {
+        url,
+        name,
+        crawlConfig: {
+          limit: options.limit,
+          outputFormats: formats,
+          includePaths: options.include ? options.include.split(',').map((p: string) => p.trim()) : [],
+          excludePaths: options.exclude ? options.exclude.split(',').map((p: string) => p.trim()) : []
+        }
+      });
+      spin.stop();
+      const robot = res.data?.data || res.data;
+      const robotId = robot.recording_meta?.id || robot.id;
+      success(`Crawl robot created: ${chalk.bold(name)} (${chalk.cyan(robotId)})`);
+      console.log(chalk.gray(`  Run it: maxun run ${robotId}`));
+    } catch {
+      spin.fail('Failed to create crawl robot');
+      process.exit(1);
+    }
+  });
+
+// maxun robots search <query>
+robotsCommand
+  .command('search <query>')
+  .description('Create a search robot for a query')
+  .option('-n, --name <name>', 'Robot name')
+  .option('-f, --format <fmt>', 'Formats: markdown, html, text, screenshot-visible, screenshot-fullpage (comma-separated)')
+  .option('--limit <n>', 'Max search results', parseInt, 10)
+  .option('--mode <mode>', 'Search mode: discover, scrape', 'discover')
+  .action(async (query, options) => {
+    const name = options.name || `Search Robot - ${query}`;
+    const formats = options.format ? options.format.split(',').map((f: string) => f.trim()) : [];
+    const spin = spinner(`Creating search robot for "${chalk.cyan(query)}"...`);
+    const client = getClient();
+
+    try {
+      const res = await client.post('/api/sdk/search', {
+        name,
+        searchConfig: {
+          query,
+          limit: options.limit,
+          mode: options.mode,
+          outputFormats: formats
+        }
+      });
+      spin.stop();
+      const robot = res.data?.data || res.data;
+      const robotId = robot.recording_meta?.id || robot.id;
+      success(`Search robot created: ${chalk.bold(name)} (${chalk.cyan(robotId)})`);
+      console.log(chalk.gray(`  Run it: maxun run ${robotId}`));
+    } catch {
+      spin.fail('Failed to create search robot');
+      process.exit(1);
+    }
+  });
+
+// maxun robots run <id>
+robotsCommand
+  .command('run <id>')
+  .description('Trigger a robot run')
+  .action(async (id) => {
+    const spin = spinner(`Starting robot ${chalk.cyan(id)}...`);
+    const client = getClient();
+
+    try {
+      const res = await client.post(`/api/sdk/robots/${id}/execute`, {}, { timeout: 1800000 });
+      spin.stop();
+      
+      const response = res.data?.data || res.data;
+      const runId = response?.runId || res.data?.runId || res.data?.id;
+      const status = response?.status || 'unknown';
+      const extracted = response?.data || {};
+
+      success(`Run completed: ${chalk.bold(runId)} ${statusBadge(status)}`);
+
+      if (status === 'success' || status === 'completed') {
+        console.log(chalk.bold.cyan('\nExtracted Data:'));
+        
+        if (extracted.textData && Object.keys(extracted.textData).length > 0) {
+          console.log(chalk.yellow('\n[Text Data]'));
+          console.log(JSON.stringify(extracted.textData, null, 2));
+        }
+
+        if (extracted.listData && extracted.listData.length > 0) {
+          console.log(chalk.yellow(`\n[List Data] (${extracted.listData.length} records)`));
+          console.log(JSON.stringify(extracted.listData, null, 2));
+        }
+
+        if (extracted.crawlData && extracted.crawlData.length > 0) {
+          console.log(chalk.yellow(`\n[Crawl Data] (${extracted.crawlData.length} pages)`));
+          console.log(JSON.stringify(extracted.crawlData, null, 2));
+        }
+
+        if (extracted.markdown) {
+          console.log(chalk.yellow('\n[Markdown Content]'));
+          console.log(extracted.markdown);
+        }
+
+        console.log(chalk.gray(`\n  Results are stored. To export as CSV or another format, use: maxun runs get ${id} ${runId}`));
+      }
+    } catch {
+      spin.fail('Failed to run robot');
+      process.exit(1);
+    }
+  });
+
+// maxun robots get <id>
+robotsCommand
+  .command('get <id>')
+  .description('Get robot details')
+  .option('--json', 'Output raw JSON')
+  .action(async (id, options) => {
+    const spin = spinner(`Fetching robot ${chalk.cyan(id)}...`);
     const client = getClient();
 
     try {
       const res = await client.get(`/api/sdk/robots/${id}`);
       spin.stop();
-
-      const json = JSON.stringify(res.data, null, 2);
-      if (options.output) {
-        saveOutput(options.output, json);
-      } else {
-        console.log(json);
+      const robot = res.data?.data || res.data;
+      
+      if (options.json) {
+        printJSON(robot);
+        return;
       }
+
+      console.log(chalk.bold(`\n🤖 Robot: ${robot.recording_meta?.name || 'Unnamed'}\n`));
+      console.log(chalk.gray(`  ID:       `) + chalk.white(robot.recording_meta?.id || robot.id));
+      console.log(chalk.gray(`  Type:     `) + chalk.cyan(robot.recording_meta?.robotType || 'extract'));
+      console.log(chalk.gray(`  URL:      `) + chalk.blue(robot.recording_meta?.url || '—'));
+      console.log(chalk.gray(`  Created:  `) + chalk.white(formatDate(robot.recording_meta?.createdAt || '')));
+      console.log();
     } catch {
-      spin.fail('Failed to export robot');
+      spin.fail('Failed to fetch robot');
       process.exit(1);
     }
   });
 
-// maxun robots import <file>
+// maxun robots delete <id>
 robotsCommand
-  .command('import <file>')
-  .description('Import a robot from a JSON file')
-  .action(async (file: string) => {
-    if (!fs.existsSync(file)) {
-      error(`File not found: ${file}`);
-      process.exit(1);
-    }
-
-    let workflow: any;
-    try {
-      workflow = JSON.parse(fs.readFileSync(file, 'utf-8'));
-    } catch {
-      error('Invalid JSON file');
-      process.exit(1);
-    }
-
-    const spin = spinner(`Importing robot from ${chalk.cyan(file)}...`);
+  .command('delete <id>')
+  .description('Delete a robot')
+  .action(async (id) => {
+    const spin = spinner(`Deleting robot ${chalk.cyan(id)}...`);
     const client = getClient();
 
     try {
-      const res = await client.post('/api/sdk/robots', workflow);
-      spin.stop();
-      success(`Robot imported: ${chalk.bold(res.data?.name || res.data?.id || 'done')}`);
+      await client.delete(`/api/sdk/robots/${id}`);
+      spin.succeed(`Robot deleted successfully`);
     } catch {
-      spin.fail('Failed to import robot');
+      spin.fail('Failed to delete robot');
+      process.exit(1);
+    }
+  });
+
+// maxun robots duplicate <id> --url <new-url>
+robotsCommand
+  .command('duplicate <id>')
+  .description('Duplicate a robot with a new URL')
+  .requiredOption('--url <url>', 'New target URL')
+  .action(async (id, options) => {
+    const spin = spinner(`Duplicating robot ${chalk.cyan(id)} with new URL...`);
+    const client = getClient();
+
+    try {
+      const res = await client.post(`/api/sdk/robots/${id}/duplicate`, {
+        targetUrl: options.url
+      });
+      spin.stop();
+      const robot = res.data?.data || res.data;
+      const newId = robot.recording_meta?.id || robot.id;
+      success(`Robot duplicated: ${chalk.bold(robot.recording_meta?.name)} (${chalk.cyan(newId)})`);
+    } catch {
+      spin.fail('Failed to duplicate robot');
       process.exit(1);
     }
   });

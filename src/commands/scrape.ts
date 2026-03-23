@@ -26,7 +26,7 @@ export const scrapeCommand = new Command('scrape')
         formats,
         onlyMainContent: options.onlyMainContent,
         ...(options.waitFor ? { waitFor: options.waitFor } : {}),
-      });
+      }, { timeout: 1800000 });
 
       spin.stop();
 

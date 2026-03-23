@@ -40,7 +40,6 @@ export const statusCommand = new Command('status')
       if (concurrency !== '—') {
         console.log(chalk.gray(`  Concurrency: `) + chalk.white(`${concurrency} active jobs`));
       }
-      console.log(chalk.gray(`  API:         `) + chalk.white(apiUrl));
       console.log();
     } catch {
       spin.fail('Could not fetch status');

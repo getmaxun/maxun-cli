@@ -86,12 +86,11 @@ maxun crawl https://example.com -o results.json
 Config is stored at `~/.maxun/config.json`.
 
 ```bash
-# Use a custom API URL (self-hosted)
-maxun login --api-key <key> --api-url http://localhost:3000
+# Set an API Key via command
+maxun login --api-key <key>
 
 # Or via environment variables
 export MAXUN_API_KEY=mx-your-key
-export MAXUN_API_URL=http://localhost:3000
 ```
 
 ## CI/CD usage

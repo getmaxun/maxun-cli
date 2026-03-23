@@ -36,7 +36,7 @@ export function clearConfig(): void {
 }
 
 export function getApiUrl(): string {
-  return process.env.MAXUN_API_URL || getConfig().apiUrl || 'https://api.maxun.dev';
+  return 'http://localhost:5001';
 }
 
 export function getApiKey(): string | undefined {

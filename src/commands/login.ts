@@ -7,8 +7,7 @@ import { resetClient as resetApiClient } from '../lib/api';
 
 export const loginCommand = new Command('login')
   .description('Authenticate with your Maxun API key')
-  .option('--api-key <key>', 'Maxun API key (mx-...)')
-  .option('--api-url <url>', 'Custom API URL for self-hosted instances')
+  .option('--api-key <key>', 'Maxun API key (89ac...)')
   .action(async (options) => {
     if (options.apiUrl) {
       saveConfig({ apiUrl: options.apiUrl });
@@ -18,7 +17,7 @@ export const loginCommand = new Command('login')
 
     if (!apiKey) {
       error('Provide your API key: maxun login --api-key <key>');
-      console.error(chalk.gray('  Get your API key at: https://app.maxun.dev/settings/api'));
+      console.error(chalk.gray('  Get your API key at: https://app.maxun.dev/apikey'));
       process.exit(1);
     }
 
@@ -40,11 +39,10 @@ export const loginCommand = new Command('login')
 
       spin.succeed(chalk.green(`Authenticated as ${chalk.bold(email)}`));
       console.log(chalk.gray(`  Plan: ${plan}`));
-      console.log(chalk.gray(`  API:  ${apiUrl}`));
     } catch (err: any) {
       spin.fail('Authentication failed');
       if (err.response?.status === 401) {
-        error('Invalid API key. Check your key at https://app.maxun.dev/settings/api');
+        error('Invalid API key. Check your key at https://app.maxun.dev/apikey');
       } else {
         error(`Could not reach API at ${apiUrl}: ${err.message}`);
       }

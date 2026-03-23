@@ -19,7 +19,6 @@
     "ora": "^5.4.1"
   },
   "devDependencies": {
-
     "@types/node": "^20.0.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.0"
@@ -27,6 +26,12 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "keywords": ["maxun", "scraping", "cli", "web-scraping", "automation"],
+  "keywords": [
+    "maxun",
+    "scraping",
+    "cli",
+    "web-scraping",
+    "automation"
+  ],
   "license": "AGPL-3.0"
 }

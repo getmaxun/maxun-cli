@@ -17,18 +17,18 @@ export const crawlCommand = new Command('crawl')
     const client = getClient();
 
     try {
-      const res = await client.post('/api/sdk/crawl', {
+      const res = await client.post('/api/sdk/crawl/execute', {
         url,
         crawlConfig: {
           maxDepth: options.depth,
           maxPages: options.limit,
           outputFormats: [options.format],
         },
-      });
+      }, { timeout: 1800000 });
 
       spin.stop();
 
-      const data = res.data;
+      const data = res.data?.data || res.data;
       const output = JSON.stringify(data, null, options.pretty ? 2 : 0);
 
       if (options.output) {
