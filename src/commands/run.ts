@@ -1,12 +1,13 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { getClient } from '../lib/api';
-import { spinner, shortId, success, statusBadge } from '../lib/output';
+import { spinner, statusBadge, printDataTable, printJSON, success } from '../lib/output';
 
 export const runCommand = new Command('run')
   .description('Run a Maxun robot by its ID')
   .argument('<id>', 'Robot ID to execute')
   .option('-f, --format <fmt>', 'Formats: markdown, html, text, screenshot-visible, screenshot-fullpage (comma-separated)')
+  .option('-t, --table', 'Output results in table format')
   .action(async (id, options) => {
     const spin = spinner(`Triggering robot ${chalk.cyan(id)}...`);
     const client = getClient();
@@ -29,42 +30,34 @@ export const runCommand = new Command('run')
       success(`Run completed: ${chalk.bold(runId)} ${statusBadge(status)}`);
 
       if (status === 'success' || status === 'completed') {
-        console.log(chalk.bold.cyan('\nExtracted Data:'));
-        
-        const hasTextData = extracted.textData && Object.keys(extracted.textData).length > 0;
-        const hasTextContent = extracted.text && extracted.text.trim().length > 0;
-        const hasListData = extracted.listData && extracted.listData.length > 0;
-        const hasCrawlData = extracted.crawlData && extracted.crawlData.length > 0;
-        const hasSearchData = extracted.searchData && Object.keys(extracted.searchData).length > 0;
+        const searchKey = Object.keys(extracted.searchData || {})[0];
+        const searchInfo = extracted.searchData ? extracted.searchData[searchKey] : null;
+        const isDiscoverSearch = searchInfo && searchInfo.mode === 'discover';
 
-        if (hasTextData) {
-          console.log(chalk.yellow('\n[Text Data]'));
-          console.log(JSON.stringify(extracted.textData, null, 2));
-        }
+        if (options.table && isDiscoverSearch) {
+          console.log(chalk.bold.cyan('\nExtracted Data:'));
+          if (Array.isArray(searchInfo.results)) {
+            const normalized = searchInfo.results.map((r: any) => ({
+              title: r.title || '-',
+              url: r.url || '-',
+              description: r.description || '-'
+            }));
+            printDataTable(normalized);
+          }
+        } else {
+          // Filter out empty fields for a cleaner JSON output
+          const filteredResults = Object.entries(extracted).reduce((acc: any, [key, value]: [string, any]) => {
+            const isEmptyArray = Array.isArray(value) && value.length === 0;
+            const isEmptyObject = value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0;
+            const isEmptyString = typeof value === 'string' && value.trim().length === 0;
 
-        if (hasTextContent) {
-          console.log(chalk.yellow('\n[Text Content]'));
-          console.log(extracted.text);
-        }
+            if (value !== null && value !== undefined && !isEmptyArray && !isEmptyObject && !isEmptyString) {
+              acc[key] = value;
+            }
+            return acc;
+          }, {});
 
-        if (hasListData) {
-          console.log(chalk.yellow(`\n[List Data] (${extracted.listData.length} items)`));
-          console.log(JSON.stringify(extracted.listData, null, 2));
-        }
-
-        if (hasCrawlData) {
-          console.log(chalk.yellow(`\n[Crawl Data] (${extracted.crawlData.length} pages)`));
-          console.log(JSON.stringify(extracted.crawlData, null, 2));
-        }
-
-        if (hasSearchData) {
-          console.log(chalk.yellow('\n[Search Data]'));
-          console.log(JSON.stringify(extracted.searchData, null, 2));
-        }
-
-        if (extracted.markdown) {
-          console.log(chalk.yellow('\n[Markdown Content]'));
-          console.log(extracted.markdown);
+          printJSON(filteredResults);
         }
 
         console.log(chalk.gray(`\n  Results are stored. To export as CSV or another format, use: maxun runs get ${id} ${runId}`));

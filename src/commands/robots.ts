@@ -11,7 +11,7 @@ export const robotsCommand = new Command('robots')
 robotsCommand
   .command('list')
   .description('List all robots')
-  .option('--json', 'Output raw JSON')
+  .option('-t, --table', 'Output in table format')
   .action(async (options) => {
     const spin = spinner('Fetching robots...');
     const client = getClient();
@@ -21,26 +21,34 @@ robotsCommand
       spin.stop();
 
       const robots: any[] = res.data?.data || res.data?.robots || res.data || [];
+      const simplifiedRobots = robots.map((r: any) => ({
+        id: r.recording_meta?.id || r.id || '',
+        name: r.recording_meta?.name || r.name || '—',
+        robotType: r.recording_meta?.robotType || r.robotType || 'extract',
+        url: r.recording_meta?.url || r.url || '—',
+        createdAt: r.recording_meta?.createdAt || r.createdAt || '—'
+      }));
 
-      if (options.json) {
-        printJSON(robots);
-        return;
+      if (options.table) {
+        if (simplifiedRobots.length === 0) {
+          console.log(chalk.gray('No robots found.'));
+          return;
+        }
+
+        printTable(
+          ['ID', 'Name', 'Type', 'URL', 'Created'],
+          simplifiedRobots.map((r: any) => [
+            chalk.gray(r.id),
+            chalk.white(r.name),
+            chalk.cyan(r.robotType),
+            chalk.gray(r.url.length > 30 ? r.url.substring(0, 27) + '...' : r.url),
+            formatDate(r.createdAt)
+          ])
+        );
+        console.log(chalk.gray(`\n  ${simplifiedRobots.length} robot${simplifiedRobots.length !== 1 ? 's' : ''} total`));
+      } else {
+        printJSON(simplifiedRobots);
       }
-
-      if (robots.length === 0) {
-        console.log(chalk.gray('No robots found. Create one with: maxun robots create-scrape <url>'));
-        return;
-      }
-
-      printTable(
-        ['ID', 'Name', 'Type'],
-        robots.map((r: any) => [
-          chalk.gray(r.recording_meta?.id || r.id || ''),
-          chalk.white(r.recording_meta?.name || r.name || '—'),
-          chalk.cyan(r.recording_meta?.robotType || r.robotType || 'extract')
-        ])
-      );
-      console.log(chalk.gray(`\n  ${robots.length} robot${robots.length !== 1 ? 's' : ''} total`));
     } catch {
       spin.fail('Failed to fetch robots');
       process.exit(1);

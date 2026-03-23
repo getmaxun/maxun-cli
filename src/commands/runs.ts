@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { getClient } from '../lib/api';
-import { spinner, printTable, shortId, formatDate, formatDuration, statusBadge, saveOutput, printJSON } from '../lib/output';
+import { spinner, printTable, printDataTable, shortId, formatDate, formatDuration, statusBadge, saveOutput, printJSON } from '../lib/output';
 
 export const runsCommand = new Command('runs')
   .description('Manage robot runs (scoped to a robot)');
@@ -11,7 +11,7 @@ runsCommand
   .command('list <robot-id>')
   .description('List recent runs for a specific robot')
   .option('--limit <n>', 'Max results', parseInt, 10)
-  .option('--json', 'Output raw JSON')
+  .option('-t, --table', 'Output in table format')
   .action(async (robotId, options) => {
     const spin = spinner(`Fetching runs for robot ${chalk.cyan(robotId)}...`);
     const client = getClient();
@@ -22,28 +22,27 @@ runsCommand
 
       const runs: any[] = res.data?.data || res.data?.runs || res.data || [];
 
-      if (options.json) {
+      if (options.table) {
+        if (runs.length === 0) {
+          console.log(chalk.gray('No runs found for this robot.'));
+          return;
+        }
+
+        const limitedRuns = runs.slice(0, options.limit);
+
+        printTable(
+          ['Run ID', 'Status', 'Started', 'Duration'],
+          limitedRuns.map((r: any) => [
+            chalk.gray(r.runId || r.id || ''),
+            statusBadge(r.status),
+            formatDate(r.startedAt || r.createdAt || ''),
+            formatDuration(r.startedAt || r.createdAt || '', r.finishedAt || r.completedAt),
+          ])
+        );
+        console.log(chalk.gray(`\n  ${limitedRuns.length} run${limitedRuns.length !== 1 ? 's' : ''} listed`));
+      } else {
         printJSON(runs);
-        return;
       }
-
-      if (runs.length === 0) {
-        console.log(chalk.gray('No runs found for this robot.'));
-        return;
-      }
-
-      const limitedRuns = runs.slice(0, options.limit);
-
-      printTable(
-        ['Run ID', 'Status', 'Started', 'Duration'],
-        limitedRuns.map((r: any) => [
-          chalk.gray(r.runId || r.id || ''),
-          statusBadge(r.status),
-          formatDate(r.startedAt || r.createdAt || ''),
-          formatDuration(r.startedAt || r.createdAt || '', r.finishedAt || r.completedAt),
-        ])
-      );
-      console.log(chalk.gray(`\n  ${limitedRuns.length} run${limitedRuns.length !== 1 ? 's' : ''} listed`));
     } catch {
       spin.fail('Failed to fetch runs');
       process.exit(1);
@@ -75,8 +74,33 @@ runsCommand
         } else {
           process.stdout.write(csvContent);
         }
+      } else if (options.format === 'table') {
+        const searchResults = outputData?.search && Object.values(outputData.search)[0] as any;
+        if (searchResults && searchResults.mode === 'discover' && Array.isArray(searchResults.results)) {
+          const normalized = searchResults.results.map((r: any) => ({
+            title: r.title || '-',
+            url: r.url || '-',
+            description: r.description || '-'
+          }));
+          printDataTable(normalized);
+        } else {
+          // Fallback to JSON for non-discovery results even if table was requested
+          printJSON(outputData);
+        }
       } else {
-        const json = JSON.stringify(options.pretty || options.output ? (run.data ? run : { ...run, data: outputData }) : outputData, null, options.pretty ? 2 : 0);
+        // Filter out empty fields for a cleaner JSON output
+        const filteredOutput = outputData && typeof outputData === 'object' ? Object.entries(outputData).reduce((acc: any, [key, value]: [string, any]) => {
+          const isEmptyArray = Array.isArray(value) && value.length === 0;
+          const isEmptyObject = value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0;
+          const isEmptyString = typeof value === 'string' && value.trim().length === 0;
+
+          if (value !== null && value !== undefined && !isEmptyArray && !isEmptyObject && !isEmptyString) {
+            acc[key] = value;
+          }
+          return acc;
+        }, {}) : outputData;
+
+        const json = JSON.stringify(options.pretty || options.output ? (run.data ? run : { ...run, data: filteredOutput }) : filteredOutput, null, options.pretty ? 2 : 0);
         if (options.output) {
           saveOutput(options.output, json);
         } else {

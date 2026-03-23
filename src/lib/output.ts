@@ -28,7 +28,82 @@ export function printTable(headers: string[], rows: string[][]): void {
   console.log(table.toString());
 }
 
-export function printJSON(data: unknown, pretty = false): void {
+export function printDataTable(data: any): void {
+  let rows: any[] = [];
+  
+  if (Array.isArray(data)) {
+    rows = data;
+  } else if (data && typeof data === 'object') {
+    // Check if it's a wrapper object for list/crawl/search
+    const values = Object.values(data);
+    if (values.length > 0 && Array.isArray(values[0])) {
+      rows = values[0];
+    } else {
+      rows = [data];
+    }
+  }
+
+  if (rows.length === 0) {
+    console.log(chalk.gray('No data to display in table.'));
+    return;
+  }
+
+  // Extract all unique headers from all rows
+  const headersSet = new Set<string>();
+  rows.forEach(row => {
+    if (row && typeof row === 'object') {
+      Object.keys(row).forEach(key => headersSet.add(key));
+    }
+  });
+  const headers = Array.from(headersSet);
+
+  if (headers.length === 0) {
+    console.log(JSON.stringify(data, null, 2));
+    return;
+  }
+
+  // If only 1 row, show as vertical table (Label | Value)
+  if (rows.length === 1) {
+    const table = new Table({
+      head: [chalk.bold.cyan('Label'), chalk.bold.cyan('Value')],
+      style: { border: ['gray'], head: [] },
+      colWidths: [20, 100]
+    });
+    headers.forEach(h => {
+      const val = rows[0][h];
+      let displayVal = typeof val === 'object' ? JSON.stringify(val) : String(val ?? '-');
+      // Truncate extremely long values in vertical view
+      if (displayVal.length > 500) {
+        displayVal = displayVal.substring(0, 497) + '...';
+      }
+      table.push([chalk.bold(h), displayVal]);
+    });
+    console.log(table.toString());
+    return;
+  }
+
+  // Horizontal table
+  const table = new Table({
+    head: headers.map(h => chalk.bold.cyan(h)),
+    style: { border: ['gray'], head: [] },
+    // Max width for horizontal table columns to prevent terminal wrapping issues
+    wordWrap: true
+  });
+
+  rows.forEach(row => {
+    const tableRow = headers.map(h => {
+      const val = row[h];
+      const displayVal = typeof val === 'object' ? JSON.stringify(val) : String(val ?? '-');
+      // Truncate long values for terminal readability
+      return displayVal.length > 50 ? displayVal.substring(0, 47) + '...' : displayVal;
+    });
+    table.push(tableRow);
+  });
+
+  console.log(table.toString());
+}
+
+export function printJSON(data: unknown, pretty = true): void {
   if (pretty) {
     console.log(JSON.stringify(data, null, 2));
   } else {
