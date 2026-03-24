@@ -14,6 +14,12 @@ export const creditsCommand = new Command('credits')
       spin.stop();
 
       const credits = res.data?.credits ?? res.data?.subscription?.credits ?? null;
+      const plan = res.data?.plan ?? res.data?.subscription?.plan ?? null;
+
+      if (plan === 'OSS') {
+        console.log(chalk.blue('Credits are not applicable for the OSS version.'));
+        return;
+      }
 
       if (credits === null) {
         console.log(chalk.yellow('Credits info not available'));
@@ -24,7 +30,7 @@ export const creditsCommand = new Command('credits')
 
       if (credits === 0) {
         console.log(chalk.red(`Credits remaining: ${formatted}`));
-        console.log(chalk.gray('  Top up at: https://app.maxun.dev/billing'));
+        console.log(chalk.gray('  Upgrade for more credits: https://app.maxun.dev/subscription-plans'));
       } else if (typeof credits === 'number' && credits < 100) {
         console.log(chalk.yellow(`Credits remaining: ${formatted}`));
       } else {

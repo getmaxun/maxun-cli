@@ -35,8 +35,14 @@ export const statusCommand = new Command('status')
 
       console.log(chalk.green(`  ● Authenticated`));
       console.log(chalk.gray(`  User:        `) + chalk.white(email));
-      console.log(chalk.gray(`  Plan:        `) + chalk.white(plan));
-      console.log(chalk.gray(`  Credits:     `) + chalk.bold.white(typeof credits === 'number' ? credits.toLocaleString() : credits));
+
+      if (plan === 'OSS') {
+        console.log(chalk.gray(`  Version:     `) + chalk.white('OSS (Self-hosted)'));
+      } else {
+        console.log(chalk.gray(`  Plan:        `) + chalk.white(plan));
+        console.log(chalk.gray(`  Credits:     `) + chalk.bold.white(typeof credits === 'number' ? credits.toLocaleString() : credits));
+      }
+
       if (concurrency !== '—') {
         console.log(chalk.gray(`  Concurrency: `) + chalk.white(`${concurrency} active jobs`));
       }

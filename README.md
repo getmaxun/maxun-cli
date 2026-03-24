@@ -11,8 +11,11 @@ npm install -g @maxun/cli
 ## Quick Start
 
 ```bash
-# Authenticate
-maxun login --api-key mx-your-key
+# Authenticate (Cloud)
+maxun login --api-key your-api-key
+
+# Authenticate (Self-hosted / OSS)
+maxun login --api-url http://localhost:8080 --api-key your-api-key
 
 # create an AI robot from a prompt
 maxun robots extract -p "Extract trending repositories from Github" -n "Github Trends"
@@ -30,7 +33,7 @@ maxun status
 
 | Command | Description |
 |---------|-------------|
-| `maxun login --api-key <key>` | Authenticate with your API key |
+| `maxun login --api-url <url> --api-key <key>` | Authenticate with your instance and API key |
 | `maxun logout` | Clear stored credentials |
 | `maxun status` | Show plan, credits, and auth status |
 | `maxun credits` | Show remaining credits |
@@ -100,7 +103,8 @@ Config is stored at `~/.maxun/config.json`.
 maxun login --api-key <key>
 
 # Or via environment variables
-export MAXUN_API_KEY=mx-your-key
+export MAXUN_API_KEY=your-api-key
+export MAXUN_API_URL=http://localhost:8080
 ```
 
 ## Piping & Scripting
