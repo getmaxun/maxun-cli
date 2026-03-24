@@ -223,7 +223,7 @@ robotsCommand
 
       console.log(chalk.bold(`\n🤖 Robot: ${robot.recording_meta?.name || 'Unnamed'}\n`));
       console.log(chalk.gray(`  ID:       `) + chalk.white(robot.recording_meta?.id || robot.id));
-      console.log(chalk.gray(`  Type:     `) + chalk.cyan(robot.recording_meta?.robotType || 'extract'));
+      console.log(chalk.gray(`  Type:     `) + chalk.cyan(robot.recording_meta?.type || robot.recording_meta?.robotType || 'extract'));
       console.log(chalk.gray(`  URL:      `) + chalk.blue(robot.recording_meta?.url || '—'));
       console.log(chalk.gray(`  Created:  `) + chalk.white(formatDate(robot.recording_meta?.createdAt || '')));
       console.log();
