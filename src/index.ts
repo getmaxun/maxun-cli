@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
 import chalk from 'chalk';
+import * as dotenv from 'dotenv';
+
 import { loginCommand } from './commands/login';
 import { logoutCommand } from './commands/logout';
 import { statusCommand } from './commands/status';
@@ -8,6 +10,8 @@ import { robotsCommand } from './commands/robots';
 import { runsCommand } from './commands/runs';
 import { runCommand } from './commands/run';
 import { creditsCommand } from './commands/credits';
+
+dotenv.config({ quiet: true });
 
 const { version } = require('../package.json');
 
@@ -19,13 +23,13 @@ program
   .version(version, '-v, --version')
   .addHelpText('after', `
 ${chalk.bold('Quick start:')}
-  $ maxun login --api-key mx-your-key
+  $ maxun login --api-key your-api-key
   $ maxun robots scrape https://example.com
   $ maxun robots list
   $ maxun run <robot-id>
   $ maxun runs get <robot-id> <run-id>
 
-${chalk.bold('Docs:')} https://docs.maxun.dev/cli
+${chalk.bold('Docs:')} https://docs.maxun.dev/category/cli
 `);
 
 // ─── Subcommands ──────────────────────────────────────────────────────────────

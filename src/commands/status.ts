@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { getClient } from '../lib/api';
-import { getApiUrl, getApiKey } from '../lib/config';
+import { getApiKey } from '../lib/config';
 import { spinner } from '../lib/output';
 import { version } from '../../package.json';
 
@@ -9,7 +9,6 @@ export const statusCommand = new Command('status')
   .description('Show authentication status, plan, and credits')
   .action(async () => {
     const apiKey = getApiKey();
-    const apiUrl = getApiUrl();
 
     console.log(chalk.bold(`\n🤖 maxun cli v${version}\n`));
 

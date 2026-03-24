@@ -34,7 +34,6 @@ export function printDataTable(data: any): void {
   if (Array.isArray(data)) {
     rows = data;
   } else if (data && typeof data === 'object') {
-    // Check if it's a wrapper object for list/crawl/search
     const values = Object.values(data);
     if (values.length > 0 && Array.isArray(values[0])) {
       rows = values[0];
@@ -48,7 +47,6 @@ export function printDataTable(data: any): void {
     return;
   }
 
-  // Extract all unique headers from all rows
   const headersSet = new Set<string>();
   rows.forEach(row => {
     if (row && typeof row === 'object') {
@@ -62,7 +60,6 @@ export function printDataTable(data: any): void {
     return;
   }
 
-  // If only 1 row, show as vertical table (Label | Value)
   if (rows.length === 1) {
     const table = new Table({
       head: [chalk.bold.cyan('Label'), chalk.bold.cyan('Value')],
@@ -72,7 +69,6 @@ export function printDataTable(data: any): void {
     headers.forEach(h => {
       const val = rows[0][h];
       let displayVal = typeof val === 'object' ? JSON.stringify(val) : String(val ?? '-');
-      // Truncate extremely long values in vertical view
       if (displayVal.length > 500) {
         displayVal = displayVal.substring(0, 497) + '...';
       }
@@ -82,11 +78,9 @@ export function printDataTable(data: any): void {
     return;
   }
 
-  // Horizontal table
   const table = new Table({
     head: headers.map(h => chalk.bold.cyan(h)),
     style: { border: ['gray'], head: [] },
-    // Max width for horizontal table columns to prevent terminal wrapping issues
     wordWrap: true
   });
 
@@ -94,7 +88,6 @@ export function printDataTable(data: any): void {
     const tableRow = headers.map(h => {
       const val = row[h];
       const displayVal = typeof val === 'object' ? JSON.stringify(val) : String(val ?? '-');
-      // Truncate long values for terminal readability
       return displayVal.length > 50 ? displayVal.substring(0, 47) + '...' : displayVal;
     });
     table.push(tableRow);

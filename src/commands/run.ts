@@ -9,7 +9,7 @@ export const runCommand = new Command('run')
   .option('-f, --format <fmt>', 'Formats: markdown, html, text, screenshot-visible, screenshot-fullpage (comma-separated)')
   .option('-t, --table', 'Output results in table format')
   .action(async (id, options) => {
-    const spin = spinner(`Triggering robot ${chalk.cyan(id)}...`);
+    const spin = spinner(`Running robot ${chalk.cyan(id)}...`);
     const client = getClient();
 
     try {
@@ -45,7 +45,6 @@ export const runCommand = new Command('run')
             printDataTable(normalized);
           }
         } else {
-          // Filter out empty fields for a cleaner JSON output
           const filteredResults = Object.entries(extracted).reduce((acc: any, [key, value]: [string, any]) => {
             const isEmptyArray = Array.isArray(value) && value.length === 0;
             const isEmptyObject = value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0;

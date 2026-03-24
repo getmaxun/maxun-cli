@@ -1,12 +1,11 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { getClient } from '../lib/api';
-import { spinner, printTable, printDataTable, shortId, formatDate, formatDuration, statusBadge, saveOutput, printJSON } from '../lib/output';
+import { spinner, printTable, printDataTable, formatDate, formatDuration, statusBadge, saveOutput, printJSON } from '../lib/output';
 
 export const runsCommand = new Command('runs')
   .description('Manage robot runs (scoped to a robot)');
 
-// maxun runs list <robot-id>
 runsCommand
   .command('list <robot-id>')
   .description('List recent runs for a specific robot')
@@ -49,7 +48,6 @@ runsCommand
     }
   });
 
-// maxun runs get <robot-id> <run-id>
 runsCommand
   .command('get <robot-id> <run-id>')
   .description('Get the output and details of a specific run')
@@ -84,11 +82,9 @@ runsCommand
           }));
           printDataTable(normalized);
         } else {
-          // Fallback to JSON for non-discovery results even if table was requested
           printJSON(outputData);
         }
       } else {
-        // Filter out empty fields for a cleaner JSON output
         const filteredOutput = outputData && typeof outputData === 'object' ? Object.entries(outputData).reduce((acc: any, [key, value]: [string, any]) => {
           const isEmptyArray = Array.isArray(value) && value.length === 0;
           const isEmptyObject = value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0;
@@ -112,8 +108,7 @@ runsCommand
       process.exit(1);
     }
   });
-
-// maxun runs abort <robot-id> <run-id>
+  
 runsCommand
   .command('abort <robot-id> <run-id>')
   .description('Abort a running robot execution')

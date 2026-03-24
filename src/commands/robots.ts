@@ -1,13 +1,11 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
-import fs from 'fs';
 import { getClient } from '../lib/api';
 import { spinner, printTable, shortId, formatDate, statusBadge, saveOutput, success, error, printJSON } from '../lib/output';
 
 export const robotsCommand = new Command('robots')
   .description('Manage your Maxun robots');
 
-// maxun robots list
 robotsCommand
   .command('list')
   .description('List all robots')
@@ -24,7 +22,7 @@ robotsCommand
       const simplifiedRobots = robots.map((r: any) => ({
         id: r.recording_meta?.id || r.id || '',
         name: r.recording_meta?.name || r.name || '—',
-        robotType: r.recording_meta?.robotType || r.robotType || 'extract',
+        robotType: r.recording_meta?.robotType || r.recording_meta?.type || r.robotType || r.type || 'extract',
         url: r.recording_meta?.url || r.url || '—',
         createdAt: r.recording_meta?.createdAt || r.createdAt || '—'
       }));
@@ -55,7 +53,6 @@ robotsCommand
     }
   });
 
-// maxun robots scrape <url>
 robotsCommand
   .command('scrape <url>')
   .description('Create a scrape robot for a URL')
@@ -88,13 +85,13 @@ robotsCommand
     }
   });
 
-// maxun robots crawl <url>
 robotsCommand
   .command('crawl <url>')
   .description('Create a crawl robot for a URL')
   .option('-n, --name <name>', 'Robot name')
   .option('-f, --format <fmt>', 'Formats: markdown, html, text, screenshot-visible, screenshot-fullpage (comma-separated)', 'markdown')
   .option('--limit <n>', 'Max pages to crawl', parseInt, 10)
+  .option('--max-depth <n>', 'Max depth to crawl', parseInt, 3)
   .option('--include <paths>', 'Include path patterns (comma-separated)')
   .option('--exclude <paths>', 'Exclude path patterns (comma-separated)')
   .action(async (url, options) => {
@@ -109,7 +106,9 @@ robotsCommand
         name,
         crawlConfig: {
           limit: options.limit,
+          maxDepth: options.maxDepth || 10,
           outputFormats: formats,
+          followLinks: true,
           includePaths: options.include ? options.include.split(',').map((p: string) => p.trim()) : [],
           excludePaths: options.exclude ? options.exclude.split(',').map((p: string) => p.trim()) : []
         }
@@ -125,7 +124,6 @@ robotsCommand
     }
   });
 
-// maxun robots search <query>
 robotsCommand
   .command('search <query>')
   .description('Create a search robot for a query')
@@ -160,7 +158,6 @@ robotsCommand
     }
   });
 
-// maxun robots extract -p <prompt> [-u <url>] [-n <name>]
 robotsCommand
   .command('extract')
   .description('Create an AI-powered extraction robot using a prompt')
@@ -182,7 +179,7 @@ robotsCommand
         llmModel: options.model,
         llmApiKey: options.apiKey,
         robotName: options.name
-      }, { timeout: 300000 }); // 5 minute timeout for AI generation
+      }, { timeout: 300000 });
       
       spin.stop();
       const robot = res.data?.data || res.data;
@@ -206,7 +203,6 @@ robotsCommand
     }
   });
 
-// maxun robots get <id>
 robotsCommand
   .command('get <id>')
   .description('Get robot details')
@@ -237,7 +233,6 @@ robotsCommand
     }
   });
 
-// maxun robots delete <id>
 robotsCommand
   .command('delete <id>')
   .description('Delete a robot')
@@ -254,7 +249,6 @@ robotsCommand
     }
   });
 
-// maxun robots duplicate <id> --url <new-url>
 robotsCommand
   .command('duplicate <id>')
   .description('Duplicate a robot with a new URL')

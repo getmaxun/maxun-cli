@@ -42,7 +42,7 @@ export const loginCommand = new Command('login')
       spin.fail('Authentication failed');
       if (err.response?.status === 401) {
         const currentApiUrl = options.apiUrl || getApiUrl();
-        const apiKeyPath = currentApiUrl.includes('maxun.dev') ? '/apikey' : '/settings/api-keys';
+        const apiKeyPath = '/apikey';
         error(`Invalid API key. Check your key at ${currentApiUrl}${apiKeyPath}`);
       } else {
         error(`Could not reach API at ${apiUrl}: ${err.message}`);
