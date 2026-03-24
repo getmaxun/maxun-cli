@@ -1,5 +1,5 @@
 {
-  "name": "@maxun/cli",
+  "name": "maxun-cli",
   "version": "0.0.1",
   "description": "Official CLI for Maxun — the open-source web data extraction platform",
   "bin": {
