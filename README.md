@@ -1,11 +1,11 @@
-# @maxun/cli
+# maxun-cli
 
 Official CLI for [Maxun](https://maxun.dev) — the open-source web data extraction platform.
 
 ## Install
 
 ```bash
-npm install -g @maxun/cli
+npm install -g maxun-cli
 ```
 
 ## Quick Start
