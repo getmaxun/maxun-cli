@@ -32,27 +32,22 @@ ${chalk.bold('Quick start:')}
 ${chalk.bold('Docs:')} https://docs.maxun.dev/category/cli
 `);
 
-// ─── Subcommands ──────────────────────────────────────────────────────────────
 program.addCommand(loginCommand);
 program.addCommand(logoutCommand);
 program.addCommand(statusCommand);
 program.addCommand(robotsCommand);
 program.addCommand(runsCommand);
-program.addCommand(runCommand); // Top-level run
+program.addCommand(runCommand);
 program.addCommand(creditsCommand);
 
-// ─── Catch-all for robot creation without 'robots' prefix ─────────────────────
-// This keeps the CLI usage similar to what users might expect
 const args = process.argv.slice(2);
 const subcommands = ['login', 'logout', 'status', 'robots', 'runs', 'run', 'credits', '-v', '--version', '-h', '--help'];
 
 if (args.length > 0 && !subcommands.includes(args[0])) {
   const arg = args[0];
   if (/^https?:\/\//i.test(arg)) {
-     // If first arg is a URL, assume they want 'robots scrape <url>'
      process.argv.splice(2, 0, 'robots', 'scrape');
   } else if (arg.length >= 8 && /^[a-f0-9-]+$/i.test(arg)) {
-     // If it looks like a UUID, assume they want 'run <id>'
      process.argv.splice(2, 0, 'run');
   }
 }
