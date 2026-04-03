@@ -18,6 +18,7 @@ export function getClient(requireAuth = true): AxiosInstance {
       baseURL: apiUrl,
       headers: {
         'Content-Type': 'application/json',
+        'x-run-source': 'cli',
         ...(apiKey ? { 'x-api-key': apiKey } : {}),
       },
       timeout: 60000,
