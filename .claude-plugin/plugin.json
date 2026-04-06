@@ -1,0 +1,12 @@
+{
+  "name": "maxun",
+  "description": "List and run Maxun web scraping robots from Claude Code. Scrape websites, manage robots, and retrieve results using the Maxun API.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Maxun",
+    "url": "https://www.maxun.dev"
+  },
+  "homepage": "https://www.maxun.dev",
+  "repository": "https://github.com/getmaxun/maxun-cli",
+  "license": "AGPL-3.0"
+}
