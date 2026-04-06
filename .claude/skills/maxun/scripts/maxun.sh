@@ -13,6 +13,13 @@
 
 set -euo pipefail
 
+# Auto-load .env if it exists in the current directory
+if [ -f .env ]; then
+  set -a
+  source .env
+  set +a
+fi
+
 BASE_URL="https://app.maxun.dev"
 API_KEY="${MAXUN_API_KEY:-}"
 
