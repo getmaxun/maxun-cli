@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# maxun.sh — Maxun SDK API helper for OpenClaw
+# maxun.sh — Maxun SDK API helper for Claude Code (cloud only)
 # All routes are under /api/sdk/ and require x-api-key header only.
+# NOTE: This skill only works with app.maxun.dev (cloud). Self-hosted is not supported.
 #
 # Commands:
 #   list                        List all robots
@@ -12,11 +13,16 @@
 
 set -euo pipefail
 
-BASE_URL="${MAXUN_BASE_URL:-https://app.maxun.dev}"
+BASE_URL="https://app.maxun.dev"
 API_KEY="${MAXUN_API_KEY:-}"
 
+if [[ -n "${MAXUN_BASE_URL:-}" ]]; then
+  echo 'Error: This skill only supports the Maxun cloud (app.maxun.dev). Self-hosted instances are not supported.' >&2
+  exit 1
+fi
+
 if [[ -z "$API_KEY" ]]; then
-  echo '{"error": "MAXUN_API_KEY environment variable is not set"}' >&2
+  echo '{"error": "MAXUN_API_KEY environment variable is not set. Get your key at https://app.maxun.dev/settings"}' >&2
   exit 1
 fi
 

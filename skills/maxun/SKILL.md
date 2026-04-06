@@ -1,6 +1,6 @@
 ---
 name: maxun
-description: List and run Maxun web scraping robots. Use when asked to list robots, run a robot, scrape a website, or get robot results using Maxun.
+description: List and run Maxun cloud robots. Use when asked to list robots, run a robot, scrape a website, or get robot results using Maxun.
 argument-hint: "list | run <robotId> | runs <robotId> | result <robotId> <runId> | get <robotId> | abort <robotId> <runId>"
 allowed-tools: Bash
 ---
@@ -76,15 +76,10 @@ bash "${CLAUDE_SKILL_DIR}/scripts/maxun.sh" abort <robotId> <runId>
 
 ## Setup
 
-Set your Maxun API key before using this skill:
+This skill works with **Maxun cloud only** (`app.maxun.dev`). Set your API key:
 
 ```bash
 export MAXUN_API_KEY="your-api-key-here"
 ```
 
-For **self-hosted Maxun**, also set:
-```bash
-export MAXUN_BASE_URL="http://localhost:8080"
-```
-
-Cloud users (`app.maxun.dev`) do not need `MAXUN_BASE_URL` — it defaults to the cloud URL.
+Get your key at: https://app.maxun.dev/settings
