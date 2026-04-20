@@ -58,6 +58,7 @@ robotsCommand
   .description('Create a scrape robot for a URL')
   .option('-n, --name <name>', 'Robot name')
   .option('-f, --format <fmt>', 'Formats: markdown, html, text, screenshot-visible, screenshot-fullpage (comma-separated)', 'markdown')
+  .option('-p, --prompt <text>', 'Smart Queries: LLM prompt to analyze the page after scraping (+2 credits per run)')
   .action(async (url, options) => {
     const formats = options.format.split(',').map((f: string) => f.trim());
     const name = options.name || `Scrape Robot - ${new URL(url).hostname}`;
@@ -65,19 +66,27 @@ robotsCommand
     const client = getClient();
 
     try {
+      const meta: any = {
+        name,
+        robotType: 'scrape',
+        url,
+        formats
+      };
+      if (options.prompt) {
+        meta.promptInstructions = options.prompt.trim();
+      }
+
       const res = await client.post('/api/sdk/robots', {
-        meta: {
-          name,
-          robotType: 'scrape',
-          url,
-          formats
-        },
+        meta,
         workflow: []
       });
       spin.stop();
       const robot = res.data?.data || res.data;
       const robotId = robot.recording_meta?.id || robot.id;
       success(`Scrape robot created: ${chalk.bold(name)} (${chalk.cyan(robotId)})`);
+      if (options.prompt) {
+        console.log(chalk.yellow(`  Smart Queries enabled — costs 3 credits per run (1 base + 2 for prompt)`));
+      }
       console.log(chalk.gray(`  Run it: maxun run ${robotId}`));
     } catch {
       spin.fail('Failed to create scrape robot');
