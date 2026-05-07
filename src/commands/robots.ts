@@ -251,8 +251,63 @@ robotsCommand
       success(`Document robot created: ${chalk.bold(name)} (${chalk.cyan(robotId)})`);
       console.log(chalk.gray(`  Run it: maxun run ${robotId}`));
     } catch (e: any) {
-      spin.fail('Failed to create document robot');
-      if (e.response?.data?.error) error(e.response.data.error);
+      const serverMsg = e.response?.data?.error || e.response?.data?.message;
+      const status = e.response?.status;
+      spin.fail(`Failed to create document robot${status ? ` (HTTP ${status})` : ''}`);
+      if (serverMsg) error(serverMsg);
+      else error(e.message);
+      process.exit(1);
+    }
+  });
+
+robotsCommand
+  .command('document-parse <pdf>')
+  .description('Create a document-parse robot from a local PDF file')
+  .requiredOption('-f, --formats <formats>', 'Output formats, comma-separated (markdown,html,links)')
+  .option('-n, --name <name>', 'Robot name')
+  .action(async (pdfPath, options) => {
+    const resolved = path.resolve(pdfPath);
+    if (!fs.existsSync(resolved)) {
+      console.error(chalk.red(`File not found: ${resolved}`));
+      process.exit(1);
+    }
+
+    const formats = options.formats.split(',').map((f: string) => f.trim()).filter(Boolean);
+    const validFormats = ['markdown', 'html', 'links'];
+    const invalid = formats.filter((f: string) => !validFormats.includes(f));
+    if (invalid.length > 0) {
+      console.error(chalk.red(`Invalid formats: ${invalid.join(', ')}. Valid options: ${validFormats.join(', ')}`));
+      process.exit(1);
+    }
+
+    const spin = spinner(`Creating document-parse robot from ${chalk.cyan(path.basename(resolved))}...`);
+    const client = getClient();
+
+    try {
+      const form = new FormData();
+      form.append('file', fs.createReadStream(resolved), path.basename(resolved));
+      if (options.name) form.append('robotName', options.name);
+      formats.forEach((f: string) => form.append('outputFormats[]', f));
+
+      const res = await client.post('/api/sdk/robots/document-parse', form, {
+        headers: form.getHeaders(),
+        timeout: 120000,
+      });
+      spin.stop();
+
+      const robot = res.data?.data || res.data?.robot || res.data;
+      const robotId = res.data?.robotId || robot?.recording_meta?.id || robot?.id;
+      const name = robot?.recording_meta?.name || options.name || 'Document Parse Robot';
+
+      success(`Document-parse robot created: ${chalk.bold(name)} (${chalk.cyan(robotId)})`);
+      console.log(chalk.gray(`  Formats:  `) + chalk.cyan(formats.join(', ')));
+      console.log(chalk.gray(`  Run it:   maxun run ${robotId}`));
+    } catch (e: any) {
+      const serverMsg = e.response?.data?.error || e.response?.data?.message;
+      const status = e.response?.status;
+      spin.fail(`Failed to create document-parse robot${status ? ` (HTTP ${status})` : ''}`);
+      if (serverMsg) error(serverMsg);
+      else error(e.message);
       process.exit(1);
     }
   });
