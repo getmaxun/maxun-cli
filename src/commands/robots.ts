@@ -216,8 +216,8 @@ robotsCommand
   });
 
 robotsCommand
-  .command('document <pdf>')
-  .description('Create a document-extraction robot from a local PDF file')
+  .command('doc-extract <pdf>')
+  .description('Create a document-extract robot from a local PDF file')
   .requiredOption('-p, --prompt <prompt>', 'What to extract (e.g. "invoice number, vendor, total")')
   .option('-n, --name <name>', 'Robot name')
   .option('--model <model>', 'Ollama Cloud model override')
@@ -228,7 +228,7 @@ robotsCommand
       process.exit(1);
     }
 
-    const spin = spinner(`Creating document robot from ${chalk.cyan(path.basename(resolved))}...`);
+    const spin = spinner(`Creating doc-extract robot from ${chalk.cyan(path.basename(resolved))}...`);
     const client = getClient();
 
     try {
@@ -248,12 +248,12 @@ robotsCommand
       const robotId = res.data?.robotId || robot?.recording_meta?.id || robot?.id;
       const name = robot?.recording_meta?.name || options.name || 'Document Robot';
 
-      success(`Document robot created: ${chalk.bold(name)} (${chalk.cyan(robotId)})`);
+      success(`doc-extract robot created: ${chalk.bold(name)} (${chalk.cyan(robotId)})`);
       console.log(chalk.gray(`  Run it: maxun run ${robotId}`));
     } catch (e: any) {
       const serverMsg = e.response?.data?.error || e.response?.data?.message;
       const status = e.response?.status;
-      spin.fail(`Failed to create document robot${status ? ` (HTTP ${status})` : ''}`);
+      spin.fail(`Failed to create doc-extract robot${status ? ` (HTTP ${status})` : ''}`);
       if (serverMsg) error(serverMsg);
       else error(e.message);
       process.exit(1);
@@ -261,7 +261,7 @@ robotsCommand
   });
 
 robotsCommand
-  .command('document-parse <pdf>')
+  .command('doc-parse <pdf>')
   .description('Create a document-parse robot from a local PDF file')
   .requiredOption('-f, --formats <formats>', 'Output formats, comma-separated (markdown,html,links)')
   .option('-n, --name <name>', 'Robot name')
@@ -280,7 +280,7 @@ robotsCommand
       process.exit(1);
     }
 
-    const spin = spinner(`Creating document-parse robot from ${chalk.cyan(path.basename(resolved))}...`);
+    const spin = spinner(`Creating doc-parse robot from ${chalk.cyan(path.basename(resolved))}...`);
     const client = getClient();
 
     try {
@@ -299,13 +299,13 @@ robotsCommand
       const robotId = res.data?.robotId || robot?.recording_meta?.id || robot?.id;
       const name = robot?.recording_meta?.name || options.name || 'Document Parse Robot';
 
-      success(`Document-parse robot created: ${chalk.bold(name)} (${chalk.cyan(robotId)})`);
+      success(`doc-parse robot created: ${chalk.bold(name)} (${chalk.cyan(robotId)})`);
       console.log(chalk.gray(`  Formats:  `) + chalk.cyan(formats.join(', ')));
       console.log(chalk.gray(`  Run it:   maxun run ${robotId}`));
     } catch (e: any) {
       const serverMsg = e.response?.data?.error || e.response?.data?.message;
       const status = e.response?.status;
-      spin.fail(`Failed to create document-parse robot${status ? ` (HTTP ${status})` : ''}`);
+      spin.fail(`Failed to create doc-parse robot${status ? ` (HTTP ${status})` : ''}`);
       if (serverMsg) error(serverMsg);
       else error(e.message);
       process.exit(1);
