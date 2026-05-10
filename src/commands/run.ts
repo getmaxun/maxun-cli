@@ -65,8 +65,12 @@ export const runCommand = new Command('run')
         if (response.error) console.error(chalk.red(`Error: ${response.error}`));
       }
     } catch (err: any) {
-      spin.fail('Failed to start robot execution');
-      if (err.response?.data?.error) console.error(chalk.red(`Error: ${err.response.data.error}`));
+      const data = err.response?.data;
+      const status = err.response?.status;
+      spin.fail(`Failed to start robot execution${status ? ` (HTTP ${status})` : ''}`);
+      if (data?.error) console.error(chalk.red(`Error: ${data.error}`));
+      if (data?.message) console.error(chalk.red(`Detail: ${data.message}`));
+      if (!data) console.error(chalk.red(err.message));
       process.exit(1);
     }
   });

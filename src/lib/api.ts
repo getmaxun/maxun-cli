@@ -33,14 +33,20 @@ export function getClient(requireAuth = true): AxiosInstance {
 
         if (status === 401) {
           console.error(chalk.red('✗ Invalid or expired API key. Run: maxun login --api-key <key>'));
+          process.exit(1);
         } else if (status === 402) {
           console.error(chalk.red('✗ Insufficient credits. Visit https://app.maxun.dev to top up.'));
+          process.exit(1);
         } else if (status === 429) {
           console.error(chalk.red('✗ Rate limited. Please wait before retrying.'));
-        } else {
-          console.error(chalk.red(`✗ API error: ${message}`));
+          process.exit(1);
+        } else if (!err.response) {
+          console.error(chalk.red(`✗ Could not reach server at ${apiUrl}`));
+          console.error(chalk.gray('  Make sure the recording service is running and MAXUN_API_URL is correct.'));
+          process.exit(1);
         }
-        process.exit(1);
+
+        return Promise.reject(err);
       }
     );
   }
