@@ -60,7 +60,7 @@ robotsCommand
   .command('scrape <url>')
   .description('Create a scrape robot for a URL')
   .option('-n, --name <name>', 'Robot name')
-  .option('-f, --format <fmt>', 'Formats: markdown, html, text, links, screenshot-visible, screenshot-fullpage (comma-separated)', 'markdown')
+  .option('-f, --format <fmt>', 'Formats: markdown, html, text, links, summary, screenshot-visible, screenshot-fullpage (comma-separated)', 'markdown')
   .option('-p, --prompt <text>', 'Smart Queries: LLM prompt to analyze the page after scraping (+2 credits per run)')
   .action(async (url, options) => {
     const formats = options.format.split(',').map((f: string) => f.trim());
@@ -101,7 +101,7 @@ robotsCommand
   .command('crawl <url>')
   .description('Create a crawl robot for a URL')
   .option('-n, --name <name>', 'Robot name')
-  .option('-f, --format <fmt>', 'Formats: markdown, html, text, links, screenshot-visible, screenshot-fullpage (comma-separated)', 'markdown')
+  .option('-f, --format <fmt>', 'Formats: markdown, html, text, links, summary, screenshot-visible, screenshot-fullpage (comma-separated)', 'markdown')
   .option('--limit <n>', 'Max pages to crawl', parseInt, 10)
   .option('--max-depth <n>', 'Max depth to crawl', parseInt, 3)
   .option('--include <paths>', 'Include path patterns (comma-separated)')
@@ -140,7 +140,7 @@ robotsCommand
   .command('search <query>')
   .description('Create a search robot for a query')
   .option('-n, --name <name>', 'Robot name')
-  .option('-f, --format <fmt>', 'Formats: markdown, html, text, links, screenshot-visible, screenshot-fullpage (comma-separated)')
+  .option('-f, --format <fmt>', 'Formats: markdown, html, text, links, summary, screenshot-visible, screenshot-fullpage (comma-separated)')
   .option('--limit <n>', 'Max search results', parseInt, 10)
   .option('--mode <mode>', 'Search mode: discover, scrape', 'discover')
   .action(async (query, options) => {

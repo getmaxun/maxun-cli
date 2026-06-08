@@ -6,7 +6,7 @@ import { spinner, statusBadge, printDataTable, printJSON, success } from '../lib
 export const runCommand = new Command('run')
   .description('Run a Maxun robot by its ID')
   .argument('<id>', 'Robot ID to execute')
-  .option('-f, --format <fmt>', 'Formats: markdown, html, text, links, screenshot-visible, screenshot-fullpage (comma-separated)')
+  .option('-f, --format <fmt>', 'Formats: markdown, html, text, links, summary, screenshot-visible, screenshot-fullpage (comma-separated)')
   .option('-t, --table', 'Output results in table format')
   .action(async (id, options) => {
     const spin = spinner(`Running robot ${chalk.cyan(id)}...`);
