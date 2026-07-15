@@ -31,7 +31,10 @@ export function getClient(requireAuth = true): AxiosInstance {
         const data = err.response?.data as any;
         const message = data?.error || data?.message || err.message;
 
-        if (status === 401) {
+        if (status === 400 && message) {
+          console.error(chalk.red(`✗ ${message}`));
+          process.exit(1);
+        } else if (status === 401) {
           console.error(chalk.red('✗ Invalid or expired API key. Run: maxun login --api-key <key>'));
           process.exit(1);
         } else if (status === 402) {

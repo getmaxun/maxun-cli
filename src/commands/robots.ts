@@ -6,6 +6,14 @@ import * as path from 'path';
 import FormData from 'form-data';
 import { spinner, printTable, formatDate, success, error, printJSON } from '../lib/output';
 
+function safeHostname(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return url;
+  }
+}
+
 export const robotsCommand = new Command('robots')
   .description('Manage your Maxun robots');
 
@@ -64,7 +72,7 @@ robotsCommand
   .option('-p, --prompt <text>', 'Smart Queries: LLM prompt to analyze the page after scraping (+2 credits per run)')
   .action(async (url, options) => {
     const formats = options.format.split(',').map((f: string) => f.trim());
-    const name = options.name || `Scrape Robot - ${new URL(url).hostname}`;
+    const name = options.name || `Scrape Robot - ${safeHostname(url)}`;
     const spin = spinner(`Creating scrape robot for ${chalk.cyan(url)}...`);
     const client = getClient();
 
@@ -107,7 +115,7 @@ robotsCommand
   .option('--include <paths>', 'Include path patterns (comma-separated)')
   .option('--exclude <paths>', 'Exclude path patterns (comma-separated)')
   .action(async (url, options) => {
-    const name = options.name || `Crawl Robot - ${new URL(url).hostname}`;
+    const name = options.name || `Crawl Robot - ${safeHostname(url)}`;
     const formats = options.format.split(',').map((f: string) => f.trim());
     const spin = spinner(`Creating crawl robot for ${chalk.cyan(url)}...`);
     const client = getClient();
