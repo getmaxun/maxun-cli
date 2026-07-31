@@ -6,6 +6,43 @@ import * as path from 'path';
 import FormData from 'form-data';
 import { spinner, printTable, formatDate, success, error, printJSON } from '../lib/output';
 
+/**
+ * Serialises LLM options, omitting anything not explicitly passed.
+ *
+ * Self-hosted Maxun requires these whenever a request needs a model — the
+ * `summary` format, Smart Queries, LLM extract and document extract. Maxun
+ * Cloud manages its own and rejects them, so an unset flag must not appear in
+ * the payload at all.
+ */
+function buildLlmPayload(options: any): Record<string, string> {
+  const provider = options.llmProvider?.trim();
+  const model = options.llmModel?.trim();
+  const apiKey = options.llmApiKey?.trim();
+  const baseUrl = options.llmBaseUrl?.trim();
+
+  /**
+   * All-or-nothing. Pass no LLM flags to use the platform's own models (the
+   * only thing Maxun Cloud accepts), or a complete set for a self-hosted
+   * instance. Checked here so the message names the missing flag rather than
+   * surfacing as a server 400.
+   */
+  if (model && !provider) {
+    error('--llm-provider is required when --llm-model is set.');
+    process.exit(1);
+  }
+  if (provider && provider !== 'ollama' && !apiKey) {
+    error(`--llm-api-key is required for provider "${provider}".`);
+    process.exit(1);
+  }
+
+  return {
+    ...(provider ? { llmProvider: provider } : {}),
+    ...(model ? { llmModel: model } : {}),
+    ...(apiKey ? { llmApiKey: apiKey } : {}),
+    ...(baseUrl ? { llmBaseUrl: baseUrl } : {}),
+  };
+}
+
 function safeHostname(url: string): string {
   try {
     return new URL(url).hostname;
@@ -70,6 +107,10 @@ robotsCommand
   .option('-n, --name <name>', 'Robot name')
   .option('-f, --format <fmt>', 'Formats: markdown, html, text, links, summary, screenshot-visible, screenshot-fullpage (comma-separated)', 'markdown')
   .option('-p, --prompt <text>', 'Smart Queries: LLM prompt to analyze the page after scraping (+2 credits per run)')
+  .option('--llm-provider <provider>', 'LLM provider (self-hosted Maxun only): anthropic, openai, ollama')
+  .option('--llm-model <model>', 'LLM model name (self-hosted Maxun only)')
+  .option('--llm-api-key <key>', 'LLM API key (self-hosted Maxun only)')
+  .option('--llm-base-url <url>', 'LLM base URL (self-hosted Maxun only)')
   .action(async (url, options) => {
     const formats = options.format.split(',').map((f: string) => f.trim());
     const name = options.name || `Scrape Robot - ${safeHostname(url)}`;
@@ -86,6 +127,7 @@ robotsCommand
       if (options.prompt) {
         meta.promptInstructions = options.prompt.trim();
       }
+      Object.assign(meta, buildLlmPayload(options));
 
       const res = await client.post('/api/sdk/robots', {
         meta,
@@ -114,6 +156,10 @@ robotsCommand
   .option('--max-depth <n>', 'Max depth to crawl', parseInt, 3)
   .option('--include <paths>', 'Include path patterns (comma-separated)')
   .option('--exclude <paths>', 'Exclude path patterns (comma-separated)')
+  .option('--llm-provider <provider>', 'LLM provider (self-hosted Maxun only): anthropic, openai, ollama')
+  .option('--llm-model <model>', 'LLM model name (self-hosted Maxun only)')
+  .option('--llm-api-key <key>', 'LLM API key (self-hosted Maxun only)')
+  .option('--llm-base-url <url>', 'LLM base URL (self-hosted Maxun only)')
   .action(async (url, options) => {
     const name = options.name || `Crawl Robot - ${safeHostname(url)}`;
     const formats = options.format.split(',').map((f: string) => f.trim());
@@ -131,7 +177,8 @@ robotsCommand
           followLinks: true,
           includePaths: options.include ? options.include.split(',').map((p: string) => p.trim()) : [],
           excludePaths: options.exclude ? options.exclude.split(',').map((p: string) => p.trim()) : []
-        }
+        },
+        ...buildLlmPayload(options)
       });
       spin.stop();
       const robot = res.data?.data || res.data;
@@ -151,6 +198,10 @@ robotsCommand
   .option('-f, --format <fmt>', 'Formats: markdown, html, text, links, summary, screenshot-visible, screenshot-fullpage (comma-separated)')
   .option('--limit <n>', 'Max search results', parseInt, 10)
   .option('--mode <mode>', 'Search mode: discover, scrape', 'discover')
+  .option('--llm-provider <provider>', 'LLM provider (self-hosted Maxun only): anthropic, openai, ollama')
+  .option('--llm-model <model>', 'LLM model name (self-hosted Maxun only)')
+  .option('--llm-api-key <key>', 'LLM API key (self-hosted Maxun only)')
+  .option('--llm-base-url <url>', 'LLM base URL (self-hosted Maxun only)')
   .action(async (query, options) => {
     const name = options.name || `Search Robot - ${query}`;
     const formats = options.format ? options.format.split(',').map((f: string) => f.trim()) : [];
@@ -165,7 +216,8 @@ robotsCommand
           limit: options.limit,
           mode: options.mode,
           outputFormats: formats
-        }
+        },
+        ...buildLlmPayload(options)
       });
       spin.stop();
       const robot = res.data?.data || res.data;
@@ -184,20 +236,25 @@ robotsCommand
   .requiredOption('-p, --prompt <prompt>', 'Natural language prompt for extraction')
   .option('-u, --url <url>', 'Target URL (optional, if omitted it will search for the URL)')
   .option('-n, --name <name>', 'Robot name')
-  .option('--provider <provider>', 'LLM Provider: huggingface, openrouter', 'huggingface')
-  .option('--model <model>', 'LLM Model name')
-  .option('--api-key <key>', 'LLM API Key')
+  .option('--llm-provider <provider>', 'LLM provider (self-hosted Maxun only): anthropic, openai, ollama')
+  .option('--llm-model <model>', 'LLM model name (self-hosted Maxun only)')
+  .option('--llm-api-key <key>', 'LLM API key (self-hosted Maxun only)')
+  .option('--llm-base-url <url>', 'LLM base URL (self-hosted Maxun only)')
   .action(async (options) => {
     const spin = spinner('Generating AI robot from prompt...');
     const client = getClient();
 
     try {
+      /**
+       * LLM options are only sent when explicitly supplied. Self-hosted Maxun
+       * honours them; Maxun Cloud manages the provider, model and credentials
+       * itself and rejects them, so sending a default would break every Cloud
+       * user of this command.
+       */
       const res = await client.post('/api/sdk/extract/llm', {
         url: options.url,
         prompt: options.prompt,
-        llmProvider: options.provider,
-        llmModel: options.model,
-        llmApiKey: options.apiKey,
+        ...buildLlmPayload(options),
         robotName: options.name
       }, { timeout: 300000 });
       
@@ -228,7 +285,10 @@ robotsCommand
   .description('Create a document-extract robot from a local PDF file')
   .requiredOption('-p, --prompt <prompt>', 'What to extract (e.g. "invoice number, vendor, total")')
   .option('-n, --name <name>', 'Robot name')
-  .option('--model <model>', 'Ollama Cloud model override')
+  .option('--llm-provider <provider>', 'LLM provider (self-hosted Maxun only): anthropic, openai, ollama')
+  .option('--llm-model <model>', 'LLM model name (self-hosted Maxun only)')
+  .option('--llm-api-key <key>', 'LLM API key (self-hosted Maxun only)')
+  .option('--llm-base-url <url>', 'LLM base URL (self-hosted Maxun only)')
   .action(async (pdfPath, options) => {
     const resolved = path.resolve(pdfPath);
     if (!fs.existsSync(resolved)) {
@@ -244,7 +304,7 @@ robotsCommand
       form.append('file', fs.createReadStream(resolved), path.basename(resolved));
       form.append('prompt', options.prompt);
       if (options.name) form.append('robotName', options.name);
-      if (options.model) form.append('ollamaModel', options.model);
+      Object.entries(buildLlmPayload(options)).forEach(([key, value]) => form.append(key, value));
 
       const res = await client.post('/api/sdk/robots/document', form, {
         headers: form.getHeaders(),
