@@ -1,6 +1,6 @@
 {
   "name": "maxun-cli",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "Official CLI for Maxun — the open-source web data extraction platform",
   "bin": {
     "maxun": "./dist/index.js"
