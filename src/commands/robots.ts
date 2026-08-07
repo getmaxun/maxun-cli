@@ -281,8 +281,8 @@ robotsCommand
   });
 
 robotsCommand
-  .command('doc-extract <pdf>')
-  .description('Create a document-extract robot from a local PDF file')
+  .command('doc-extract <file>')
+  .description('Create a document-extract robot from a local PDF, CSV, or XLSX file')
   .requiredOption('-p, --prompt <prompt>', 'What to extract (e.g. "invoice number, vendor, total")')
   .option('-n, --name <name>', 'Robot name')
   .option('--llm-provider <provider>', 'LLM provider (self-hosted Maxun only): anthropic, openai, ollama')
@@ -329,10 +329,14 @@ robotsCommand
   });
 
 robotsCommand
-  .command('doc-parse <pdf>')
-  .description('Create a document-parse robot from a local PDF file')
-  .requiredOption('-f, --formats <formats>', 'Output formats, comma-separated (markdown,html,links)')
+  .command('doc-parse <file>')
+  .description('Create a document-parse robot from a local PDF, CSV, or XLSX file')
+  .requiredOption('-f, --formats <formats>', 'Output formats, comma-separated (markdown,html,links,summary)')
   .option('-n, --name <name>', 'Robot name')
+  .option('--llm-provider <provider>', 'LLM provider for summary (self-hosted Maxun only): anthropic, openai, ollama')
+  .option('--llm-model <model>', 'LLM model name for summary (self-hosted Maxun only)')
+  .option('--llm-api-key <key>', 'LLM API key for summary (self-hosted Maxun only)')
+  .option('--llm-base-url <url>', 'LLM base URL for summary (self-hosted Maxun only)')
   .action(async (pdfPath, options) => {
     const resolved = path.resolve(pdfPath);
     if (!fs.existsSync(resolved)) {
@@ -341,7 +345,7 @@ robotsCommand
     }
 
     const formats = options.formats.split(',').map((f: string) => f.trim()).filter(Boolean);
-    const validFormats = ['markdown', 'html', 'links'];
+    const validFormats = ['markdown', 'html', 'links', 'summary'];
     const invalid = formats.filter((f: string) => !validFormats.includes(f));
     if (invalid.length > 0) {
       console.error(chalk.red(`Invalid formats: ${invalid.join(', ')}. Valid options: ${validFormats.join(', ')}`));
@@ -356,6 +360,7 @@ robotsCommand
       form.append('file', fs.createReadStream(resolved), path.basename(resolved));
       if (options.name) form.append('robotName', options.name);
       formats.forEach((f: string) => form.append('outputFormats[]', f));
+      Object.entries(buildLlmPayload(options)).forEach(([key, value]) => form.append(key, value));
 
       const res = await client.post('/api/sdk/robots/document-parse', form, {
         headers: form.getHeaders(),
