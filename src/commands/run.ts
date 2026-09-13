@@ -28,6 +28,9 @@ export const runCommand = new Command('run')
       const extracted = response?.data || {};
       
       success(`Run completed: ${chalk.bold(runId)} ${statusBadge(status)}`);
+      if (response?.hasChanges) {
+        console.log(chalk.yellow('  Changes detected since the previous successful run.'));
+      }
 
       if (status === 'success' || status === 'completed') {
         const searchKey = Object.keys(extracted.searchData || {})[0];

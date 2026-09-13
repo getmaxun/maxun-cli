@@ -107,6 +107,7 @@ robotsCommand
   .option('-n, --name <name>', 'Robot name')
   .option('-f, --format <fmt>', 'Formats: markdown, html, text, links, summary, screenshot-visible, screenshot-fullpage (comma-separated)', 'markdown')
   .option('-p, --prompt <text>', 'Smart Queries: LLM prompt to analyze the page after scraping (+2 credits per run)')
+  .option('--monitor', 'Compare each run with the previous successful run')
   .option('--llm-provider <provider>', 'LLM provider (self-hosted Maxun only): anthropic, openai, ollama')
   .option('--llm-model <model>', 'LLM model name (self-hosted Maxun only)')
   .option('--llm-api-key <key>', 'LLM API key (self-hosted Maxun only)')
@@ -124,6 +125,7 @@ robotsCommand
         url,
         formats
       };
+      if (options.monitor) meta.compareRuns = true;
       if (options.prompt) {
         meta.promptInstructions = options.prompt.trim();
       }
@@ -236,6 +238,7 @@ robotsCommand
   .requiredOption('-p, --prompt <prompt>', 'Natural language prompt for extraction')
   .option('-u, --url <url>', 'Target URL (optional, if omitted it will search for the URL)')
   .option('-n, --name <name>', 'Robot name')
+  .option('--monitor', 'Compare each run with the previous successful run')
   .option('--llm-provider <provider>', 'LLM provider (self-hosted Maxun only): anthropic, openai, ollama')
   .option('--llm-model <model>', 'LLM model name (self-hosted Maxun only)')
   .option('--llm-api-key <key>', 'LLM API key (self-hosted Maxun only)')
@@ -255,6 +258,7 @@ robotsCommand
         url: options.url,
         prompt: options.prompt,
         ...buildLlmPayload(options),
+        ...(options.monitor ? { compareRuns: true } : {}),
         robotName: options.name
       }, { timeout: 300000 });
       
