@@ -28,6 +28,13 @@ export const runCommand = new Command('run')
       const extracted = response?.data || {};
       
       success(`Run completed: ${chalk.bold(runId)} ${statusBadge(status)}`);
+      if (response?.hasChanges) {
+        const formats = Array.isArray(response.changedFormats) && response.changedFormats.length
+          ? `: ${response.changedFormats.join(', ')}`
+          : '';
+        console.log(chalk.yellow(`  Monitored changes detected${formats}`));
+        console.log(chalk.gray(`  View diff: maxun runs diff ${id} ${runId}`));
+      }
 
       if (status === 'success' || status === 'completed') {
         const searchKey = Object.keys(extracted.searchData || {})[0];

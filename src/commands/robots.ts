@@ -107,6 +107,7 @@ robotsCommand
   .option('-n, --name <name>', 'Robot name')
   .option('-f, --format <fmt>', 'Formats: markdown, html, text, links, summary, screenshot-visible, screenshot-fullpage (comma-separated)', 'markdown')
   .option('-p, --prompt <text>', 'Smart Queries: LLM prompt to analyze the page after scraping (+2 credits per run)')
+  .option('--monitor', 'Monitor this robot for changes between successful runs')
   .option('--llm-provider <provider>', 'LLM provider (self-hosted Maxun only): anthropic, openai, ollama')
   .option('--llm-model <model>', 'LLM model name (self-hosted Maxun only)')
   .option('--llm-api-key <key>', 'LLM API key (self-hosted Maxun only)')
@@ -124,6 +125,7 @@ robotsCommand
         url,
         formats
       };
+      if (options.monitor) meta.compareRuns = true;
       if (options.prompt) {
         meta.promptInstructions = options.prompt.trim();
       }
@@ -137,6 +139,9 @@ robotsCommand
       const robot = res.data?.data || res.data;
       const robotId = robot.recording_meta?.id || robot.id;
       success(`Scrape robot created: ${chalk.bold(name)} (${chalk.cyan(robotId)})`);
+      if (options.monitor) {
+        console.log(chalk.cyan('  Monitoring enabled'));
+      }
       if (options.prompt) {
         console.log(chalk.yellow(`  Smart Queries enabled — costs 3 credits per run (1 base + 2 for prompt)`));
       }
@@ -236,6 +241,7 @@ robotsCommand
   .requiredOption('-p, --prompt <prompt>', 'Natural language prompt for extraction')
   .option('-u, --url <url>', 'Target URL (optional, if omitted it will search for the URL)')
   .option('-n, --name <name>', 'Robot name')
+  .option('--monitor', 'Monitor this robot for changes between successful runs')
   .option('--llm-provider <provider>', 'LLM provider (self-hosted Maxun only): anthropic, openai, ollama')
   .option('--llm-model <model>', 'LLM model name (self-hosted Maxun only)')
   .option('--llm-api-key <key>', 'LLM API key (self-hosted Maxun only)')
@@ -255,6 +261,7 @@ robotsCommand
         url: options.url,
         prompt: options.prompt,
         ...buildLlmPayload(options),
+        ...(options.monitor ? { compareRuns: true } : {}),
         robotName: options.name
       }, { timeout: 300000 });
       
@@ -264,6 +271,9 @@ robotsCommand
       const name = robot.name || robot.recording_meta?.name || options.name || 'AI Robot';
 
       success(`AI Extract robot created: ${chalk.bold(name)} (${chalk.cyan(robotId)})`);
+      if (options.monitor) {
+        console.log(chalk.cyan('  Monitoring enabled'));
+      }
       if (res.data?.existing) {
         console.log(chalk.yellow('  (Using existing robot with same configuration)'));
       }
@@ -407,6 +417,7 @@ robotsCommand
       console.log(chalk.gray(`  ID:       `) + chalk.white(robot.recording_meta?.id || robot.id));
       console.log(chalk.gray(`  Type:     `) + chalk.cyan(robot.recording_meta?.type || robot.recording_meta?.robotType || 'extract'));
       console.log(chalk.gray(`  URL:      `) + chalk.blue(robot.recording_meta?.url || '—'));
+      console.log(chalk.gray(`  Monitor:  `) + (robot.recording_meta?.compareRuns ? chalk.green('enabled') : chalk.gray('disabled')));
       console.log(chalk.gray(`  Created:  `) + chalk.white(formatDate(robot.recording_meta?.createdAt || '')));
       console.log();
     } catch {

@@ -43,8 +43,8 @@ maxun status
 | Command | Description |
 |---------|-------------|
 | `maxun robots list` | List all robots (Defaults to JSON, use `--table` for formatted view) |
-| `maxun robots extract -p <prompt>` | Create an AI robot from a natural language prompt |
-| `maxun robots scrape <url>` | Create a single-page extraction robot |
+| `maxun robots extract -p <prompt> --monitor` | Create an AI robot and monitor its successful runs for changes |
+| `maxun robots scrape <url> --monitor` | Create a single-page robot with monitoring enabled |
 | `maxun robots crawl <url>` | Create a multi-page crawler robot |
 | `maxun robots search <query>` | Create a search-based robot (modes: `discover`, `scrape`) |
 | `maxun robots delete <id>` | Remove a robot |
@@ -64,6 +64,7 @@ maxun status
 |---------|-------------|
 | `maxun runs list <robot-id>` | List recent runs for a robot |
 | `maxun runs get <robot-id> <run-id>` | Fetch specific run data (Defaults to JSON) |
+| `maxun runs diff <robot-id> <run-id>` | Show a concise monitoring diff for a run |
 | `maxun runs get <robot-id> <run-id> -f table` | View historical data in a table format |
 | `maxun runs get <robot-id> <run-id> -f csv -o data.csv` | Export results to CSV file |
 
@@ -74,7 +75,8 @@ maxun status
 maxun robots extract \
   -p "Extract all product names and prices" \
   -u "https://example.com/shop" \
-  -n "Shop Extractor"
+  -n "Shop Extractor" \
+  --monitor
 ```
 
 ### Discovery Search
@@ -90,8 +92,22 @@ maxun run <id> --table
 
 ### Scraping & Crawling
 ```bash
-maxun robots scrape https://example.com -f markdown,text -n "Example Scraper"
+maxun robots scrape https://example.com -f markdown,text -n "Example Scraper" --monitor
 maxun robots crawl https://docs.maxun.dev --limit 10 --include "/docs/*" -n "Docs Crawler"
+```
+
+`--monitor` stores the first successful execution as the baseline. Each later
+successful run is monitored against the preceding successful run. Monitoring is
+currently available for Scrape and Extract robots in self-hosted Maxun.
+
+```bash
+# Show all changed formats with concise context
+maxun runs diff <robot-id> <run-id>
+
+# Limit output to one format, or print the complete/raw diff
+maxun runs diff <robot-id> <run-id> --format markdown
+maxun runs diff <robot-id> <run-id> --full
+maxun runs diff <robot-id> <run-id> --json
 ```
 
 ## Configuration

@@ -110,6 +110,75 @@ runsCommand
   });
   
 runsCommand
+  .command('diff <robot-id> <run-id>')
+  .description('Show the monitoring diff for a robot run')
+  .option('-f, --format <format>', 'Show one changed format (text, markdown, html, captured-text, captured-list)')
+  .option('--full', 'Show the complete diff without context or length limits')
+  .option('--json', 'Output the raw diff response as JSON')
+  .action(async (robotId, runId, options) => {
+    const spin = spinner(`Fetching monitoring diff for ${chalk.cyan(runId)}...`);
+    const client = getClient();
+
+    try {
+      const res = await client.get(`/api/sdk/robots/${robotId}/runs/${runId}/diff`, {
+        params: options.format ? { format: options.format } : undefined,
+      });
+      spin.stop();
+      const result = res.data?.data || res.data;
+
+      if (options.json) {
+        printJSON(result);
+        return;
+      }
+      if (!result.previousRunId) {
+        console.log(chalk.gray('No previous successful run exists. This run is the monitoring baseline.'));
+        return;
+      }
+      if (!result.hasChanges || !result.changedFormats?.length) {
+        console.log(chalk.green('No monitored changes were detected.'));
+        return;
+      }
+      if (options.format && !result.diffs?.length) {
+        console.log(chalk.yellow(`No changes were detected for ${options.format}.`));
+        console.log(chalk.gray(`Changed formats: ${result.changedFormats.join(', ')}`));
+        return;
+      }
+
+      console.log(chalk.yellow(`Changes detected: ${result.changedFormats.join(', ')}`));
+      console.log(chalk.gray(`Previous run: ${result.previousRunId}\n`));
+
+      for (const diff of result.diffs || []) {
+        console.log(chalk.bold.cyan(diff.format));
+        const lines = (diff.changes || []).flatMap((part: any) =>
+          String(part.value).split('\n').filter((line: string, index: number, values: string[]) => line || index < values.length - 1)
+            .map((line: string) => ({ line, added: part.added, removed: part.removed }))
+        );
+        const changedIndexes = new Set<number>();
+        lines.forEach((line: any, index: number) => {
+          if (line.added || line.removed) {
+            for (let context = Math.max(0, index - 2); context <= Math.min(lines.length - 1, index + 2); context++) changedIndexes.add(context);
+          }
+        });
+        const visible = options.full ? lines : lines.filter((_: any, index: number) => changedIndexes.has(index)).slice(0, 120);
+        visible.forEach((entry: any) => {
+          const text = options.full || entry.line.length <= 240 ? entry.line : `${entry.line.slice(0, 237)}...`;
+          const rendered = `${entry.added ? '+' : entry.removed ? '-' : ' '} ${text}`;
+          console.log(entry.added ? chalk.green(rendered) : entry.removed ? chalk.red(rendered) : chalk.gray(rendered));
+        });
+        if (!options.full && (lines.filter((_: any, index: number) => changedIndexes.has(index)).length > 120 || lines.some((entry: any) => entry.line.length > 240))) {
+          console.log(chalk.gray('  … diff shortened; use --full to display everything'));
+        }
+        console.log();
+      }
+    } catch (err: any) {
+      const message = err.response?.data?.error || err.response?.data?.message || err.message;
+      spin.fail('Failed to fetch monitoring diff');
+      console.error(chalk.red(`Error: ${message}`));
+      process.exit(1);
+    }
+  });
+
+runsCommand
   .command('abort <robot-id> <run-id>')
   .description('Abort a running robot execution')
   .action(async (robotId, runId) => {
