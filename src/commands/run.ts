@@ -29,7 +29,11 @@ export const runCommand = new Command('run')
       
       success(`Run completed: ${chalk.bold(runId)} ${statusBadge(status)}`);
       if (response?.hasChanges) {
-        console.log(chalk.yellow('  Changes detected since the previous successful run.'));
+        const formats = Array.isArray(response.changedFormats) && response.changedFormats.length
+          ? `: ${response.changedFormats.join(', ')}`
+          : '';
+        console.log(chalk.yellow(`  Monitored changes detected${formats}`));
+        console.log(chalk.gray(`  View diff: maxun runs diff ${id} ${runId}`));
       }
 
       if (status === 'success' || status === 'completed') {

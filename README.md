@@ -64,6 +64,7 @@ maxun status
 |---------|-------------|
 | `maxun runs list <robot-id>` | List recent runs for a robot |
 | `maxun runs get <robot-id> <run-id>` | Fetch specific run data (Defaults to JSON) |
+| `maxun runs diff <robot-id> <run-id>` | Show a concise monitoring diff for a run |
 | `maxun runs get <robot-id> <run-id> -f table` | View historical data in a table format |
 | `maxun runs get <robot-id> <run-id> -f csv -o data.csv` | Export results to CSV file |
 
@@ -98,6 +99,16 @@ maxun robots crawl https://docs.maxun.dev --limit 10 --include "/docs/*" -n "Doc
 `--monitor` stores the first successful execution as the baseline. Each later
 successful run is monitored against the preceding successful run. Monitoring is
 currently available for Scrape and Extract robots in self-hosted Maxun.
+
+```bash
+# Show all changed formats with concise context
+maxun runs diff <robot-id> <run-id>
+
+# Limit output to one format, or print the complete/raw diff
+maxun runs diff <robot-id> <run-id> --format markdown
+maxun runs diff <robot-id> <run-id> --full
+maxun runs diff <robot-id> <run-id> --json
+```
 
 ## Configuration
 
